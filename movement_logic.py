@@ -46,3 +46,31 @@ class HeadMovementTracker:
             self.last_state_change = time.time()
             
         return self.is_sleeping
+
+class DistractionTracker:
+    def __init__(self):
+        self.start_time = None
+        self.is_distracted = False
+
+    def get_direction(self, pose):
+        if pose is None: return "UNKNOWN"
+        pitch, yaw, roll = pose
+        
+        if pitch > config.POSE_PITCH_THRESHOLD: return "DOWN"
+        if pitch < -config.POSE_PITCH_THRESHOLD: return "UP"
+        if yaw > config.POSE_YAW_THRESHOLD: return "RIGHT"
+        if yaw < -config.POSE_YAW_THRESHOLD: return "LEFT"
+        return "CENTER"
+
+    def update(self, direction):
+        if direction != "CENTER" and direction != "UNKNOWN":
+            if self.start_time is None:
+                 self.start_time = time.time()
+            
+            elapsed = time.time() - self.start_time
+            if elapsed > config.DISTRACTION_TIMEOUT:
+                return True
+        else:
+            self.start_time = None
+            
+        return False

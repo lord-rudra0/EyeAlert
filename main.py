@@ -4,7 +4,7 @@ import config
 from mp_wrapper import FaceMeshWrapper
 from score_logic import ReliabilityScorer
 from reaction_logic import ReactionTester
-from movement_logic import HeadMovementTracker
+from movement_logic import HeadMovementTracker, DistractionTracker
 from occlusion_logic import OcclusionDetector
 from graph_renderer import TrendGraph
 import ear_utils, pose_utils, visualizer, ui_renderer
@@ -16,6 +16,7 @@ def main():
     # New Detectors
     move_tracker = HeadMovementTracker()
     occ_detector = OcclusionDetector()
+    dist_tracker = DistractionTracker()
 
     while True:
         success, img = cap.read()
@@ -30,6 +31,8 @@ def main():
         is_mask = False
         is_sunglasses = False
         mask_val = 0.0
+        direction = "UNKNOWN"
+        is_distracted = False
         
         if results.multi_face_landmarks:
             lm = results.multi_face_landmarks[0]
@@ -41,8 +44,15 @@ def main():
             # Update Trackers
             is_sleeping = move_tracker.update(pose)
             is_mask, is_sunglasses, mask_val = occ_detector.update(img, results, w, h)
+            
+            # Distraction Logic
+            direction = dist_tracker.get_direction(pose)
+            is_distracted = dist_tracker.update(direction)
 
         score = scorer.update(ear, pose, is_sunglasses=is_sunglasses)
+        
+        # Trigger Sleep Alert if score is low
+        if score < 50.0: is_sleeping = True
         
         # Reaction Test (Disabled)
         # if rectest.should_trigger(): pass
@@ -53,9 +63,11 @@ def main():
         txt, col = ui_renderer.get_status_color(score)
         ui_renderer.draw_hud(img, score, txt, col, ear, pose)
         ui_renderer.draw_occlusion_alerts(img, w, h, is_sleeping, is_mask, is_sunglasses, debug_val=mask_val)
-        
         graph.update(score, col)
         graph.draw(img, 10, h-110)
+
+        ui_renderer.draw_direction(img, direction)
+        if is_distracted: ui_renderer.draw_distraction_alert(img, w, h)
 
         cv2.imshow("EyeAlert", img)
         key = cv2.waitKey(5) & 0xFF
