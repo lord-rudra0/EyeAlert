@@ -6,6 +6,7 @@ from score_logic import ReliabilityScorer
 from reaction_logic import ReactionTester
 from movement_logic import HeadMovementTracker, DistractionTracker
 from occlusion_logic import OcclusionDetector
+from firebase_manager import FirebaseManager
 from graph_renderer import TrendGraph
 import ear_utils, pose_utils, visualizer, ui_renderer
 
@@ -17,6 +18,10 @@ def main():
     move_tracker = HeadMovementTracker()
     occ_detector = OcclusionDetector()
     dist_tracker = DistractionTracker()
+    blink_detector = ear_utils.BlinkDetector()
+    
+    # Firebase
+    fb_manager = FirebaseManager()
 
     while True:
         success, img = cap.read()
@@ -33,6 +38,7 @@ def main():
         mask_val = 0.0
         direction = "UNKNOWN"
         is_distracted = False
+        bpm = 0
         
         if results.multi_face_landmarks:
             lm = results.multi_face_landmarks[0]
@@ -48,6 +54,9 @@ def main():
             # Distraction Logic
             direction = dist_tracker.get_direction(pose)
             is_distracted = dist_tracker.update(direction)
+            
+            # Blink Logic
+            bpm = blink_detector.update(ear)
 
         score = scorer.update(ear, pose, is_sunglasses=is_sunglasses)
         
@@ -63,11 +72,23 @@ def main():
         txt, col = ui_renderer.get_status_color(score)
         ui_renderer.draw_hud(img, score, txt, col, ear, pose)
         ui_renderer.draw_occlusion_alerts(img, w, h, is_sleeping, is_mask, is_sunglasses, debug_val=mask_val)
+        ui_renderer.draw_bpm(img, bpm)
+        
         graph.update(score, col)
         graph.draw(img, 10, h-110)
 
         ui_renderer.draw_direction(img, direction)
-        if is_distracted: ui_renderer.draw_distraction_alert(img, w, h)
+        
+        # Actions & Alerts
+        alert_msg = ""
+        if is_sleeping: 
+             alert_msg = "SLEEPING"
+        elif is_distracted:
+             alert_msg = "DISTRACTED"
+             ui_renderer.draw_distraction_alert(img, w, h)
+             
+        if alert_msg:
+             fb_manager.send_alert(alert_msg, bpm, str(direction), f"Score: {int(score)}")
 
         cv2.imshow("EyeAlert", img)
         key = cv2.waitKey(5) & 0xFF

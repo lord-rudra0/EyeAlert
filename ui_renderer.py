@@ -23,6 +23,9 @@ def draw_occlusion_alerts(image, w, h, sleeping, mask, sunglasses, debug_val=0.0
         cv2.putText(image, "SLEEPING!", (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, 0.8, config.COLOR_RED, 2)
         y_offset += 30
 
+def draw_bpm(image, bpm):
+    cv2.putText(image, f"BPM: {bpm}", (image.shape[1] - 150, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.6, config.COLOR_WHITE, 2)
+
 def draw_direction(image, direction):
     h = image.shape[0]
     cv2.putText(image, f"Looking: {direction}", (10, h-80), cv2.FONT_HERSHEY_SIMPLEX, 0.7, config.COLOR_YELLOW, 2)

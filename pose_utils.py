@@ -11,9 +11,17 @@ def estimate_head_pose(landmarks, w, h):
         img_pts.append([lm.x * w, lm.y * h])
     
     img_pts = np.array(img_pts, dtype=np.float64)
+    
+    # Generic 3D Face Model (Metric: arbitrary units, centered at head)
+    # Points correspond to: [Nose Tip, Chin, L-Eye Left Corner, R-Eye Right Corner, L-Mouth Corner, R-Mouth Corner]
+    # Using more accurate relative depths
     model_pts = np.array([
-        (0.0, 0.0, 0.0), (0.0, -330.0, -65.0), (-225.0, 170.0, -135.0),
-        (225.0, 170.0, -135.0), (-150.0, -150.0, -125.0), (150.0, -150.0, -125.0)
+        (0.0, 0.0, 0.0),             # Nose tip
+        (0.0, -330.0, -65.0),        # Chin
+        (-225.0, 170.0, -135.0),     # Left Eye Left Corner
+        (225.0, 170.0, -135.0),      # Right Eye Right Corner
+        (-150.0, -150.0, -125.0),    # Left Mouth Corner
+        (150.0, -150.0, -125.0)      # Right Mouth Corner
     ])
     
     cam_matrix = np.array([[w, 0, w/2], [0, w, h/2], [0, 0, 1]], dtype="double")
