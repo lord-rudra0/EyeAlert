@@ -5,11 +5,11 @@ class ReliabilityScorer:
     def __init__(self):
         self.score = 100.0
 
-    def update(self, ear, head_pose):
+    def update(self, ear, head_pose, is_sunglasses=False):
         penalty = 0.0
         is_attentive = True
 
-        if ear < config.EAR_THRESHOLD:
+        if not is_sunglasses and ear < config.EAR_THRESHOLD:
             penalty += config.DECAY_RATE_EYES
             is_attentive = False
             
